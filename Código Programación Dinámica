@@ -1,0 +1,113 @@
+def orden_cadena_matrices(dimensiones):
+    n = len(dimensiones) - 1
+    m = [[0] * (n + 1) for _ in range(n + 1)]
+    s = [[0] * (n + 1) for _ in range(n + 1)]
+
+    for longitud in range(2, n + 1):
+        for i in range(1, n - longitud + 2):
+            j = i + longitud - 1
+            m[i][j] = float('inf')
+            for k in range(i, j):
+                costo = (m[i][k]
+                         + m[k + 1][j]
+                         + dimensiones[i - 1] * dimensiones[k] * dimensiones[j])
+                if costo < m[i][j]:
+                    m[i][j] = costo
+                    s[i][j] = k
+    return m, s
+
+
+def multiplicar_matrices(matriz_a, matriz_b):
+    filas_a, cols_a = len(matriz_a), len(matriz_a[0])
+    cols_b = len(matriz_b[0])
+    resultado = [[0] * cols_b for _ in range(filas_a)]
+    for i in range(filas_a):
+        for k in range(cols_a):
+            valor_a = matriz_a[i][k]
+            if valor_a == 0:
+                continue
+            for j in range(cols_b):
+                resultado[i][j] += valor_a * matriz_b[k][j]
+    return resultado
+
+
+def multiplicar_por_orden(matrices, s, i, j):
+    if i == j:
+        return matrices[i - 1]
+    k = s[i][j]
+    izquierda = multiplicar_por_orden(matrices, s, i, k)
+    derecha = multiplicar_por_orden(matrices, s, k + 1, j)
+    return multiplicar_matrices(izquierda, derecha)
+
+
+def obtener_mejor_orden(s, i, j):
+    if i == j:
+        return f"A{i}"
+    k = s[i][j]
+    return f"({obtener_mejor_orden(s, i, k)} x {obtener_mejor_orden(s, k + 1, j)})"
+
+
+def leer_matriz(nombre):
+    while True:
+        try:
+            filas = int(input(f"  Filas de {nombre}: "))
+            columnas = int(input(f"  Columnas de {nombre}: "))
+            if filas <= 0 or columnas <= 0:
+                print("  Deben ser positivas.")
+                continue
+            break
+        except ValueError:
+            print("  Introduce números enteros.")
+
+    print(f"  Introduce las {filas} filas de {nombre} (números separados por espacios):")
+    matriz = []
+    for num_fila in range(filas):
+        while True:
+            try:
+                fila = list(map(float, input(f"    Fila {num_fila + 1}: ").split()))
+                if len(fila) != columnas:
+                    print(f"    Deben ser {columnas} números.")
+                    continue
+                matriz.append(fila)
+                break
+            except ValueError:
+                print("    Valores inválidos, intenta de nuevo.")
+    return matriz
+
+
+def principal():
+    print("=== Multiplicación de matrices mediante programación dinámica ===")
+    while True:
+        try:
+            n = int(input("¿Cuántas matrices desea multiplicar? "))
+            if n >= 2:
+                break
+            print("Deben ser al menos 2.")
+        except ValueError:
+            print("Introduce un entero.")
+
+    matrices = []
+    for indice in range(1, n + 1):
+        print(f"\nMatriz A{indice}:")
+        matrices.append(leer_matriz(f"A{indice}"))
+
+    for indice in range(n - 1):
+        if len(matrices[indice][0]) != len(matrices[indice + 1]):
+            print(f"\nError: A{indice + 1} tiene {len(matrices[indice][0])} columnas "
+                  f"pero A{indice + 2} tiene {len(matrices[indice + 1])} filas.")
+            return
+
+    dimensiones = [len(matrices[0])] + [len(matriz[0]) for matriz in matrices]
+
+    m, s = orden_cadena_matrices(dimensiones)
+    print("\nMínimo de operaciones:", int(m[1][n]))
+    print("Mejor orden:", obtener_mejor_orden(s, 1, n))
+
+    resultado = multiplicar_por_orden(matrices, s, 1, n)
+
+    print("\nResultado:")
+    for fila in resultado:
+        print("  ", fila)
+
+
+principal()
