@@ -1,180 +1,296 @@
-ALGORITMO MultiplicacionMatricesFuerzaBruta
+// =========================================================
+// SUBPROCESOS
+// =========================================================
 
-// ------------------------------------------------------------
-// Función para multiplicar dos matrices
-// ------------------------------------------------------------
-FUNCIÓN multiplicar_matrices(matriz_a, matriz_b)
-    filas_a <- longitud(matriz_a)
-    cols_a  <- longitud(matriz_a[0])
-    cols_b  <- longitud(matriz_b[0])
+SubProceso MultiplicarMatrices(A Por Referencia, fA, cA, B Por Referencia, cB, C Por Referencia)
+    Definir i, j, k Como Entero
+    Definir valorA Como Real
 
-    resultado <- matriz de tamaño [filas_a][cols_b] llena de 0
+    // Inicializar matriz C en 0
+    Para i <- 1 Hasta fA Hacer
+        Para j <- 1 Hasta cB Hacer
+            C[i, j] <- 0
+        FinPara
+    FinPara
 
-    PARA i <- 0 HASTA filas_a - 1 HACER
-        PARA k <- 0 HASTA cols_a - 1 HACER
-            valor_a <- matriz_a[i][k]
-            SI valor_a = 0 ENTONCES
-                CONTINUAR con la siguiente iteración de k
-            FIN SI
+    // Orden i -> k -> j saltando ceros (equivalente al "continue" de Python)
+    Para i <- 1 Hasta fA Hacer
+        Para k <- 1 Hasta cA Hacer
+            valorA <- A[i, k]
+            Si valorA <> 0 Entonces
+                Para j <- 1 Hasta cB Hacer
+                    C[i, j] <- C[i, j] + valorA * B[k, j]
+                FinPara
+            FinSi
+        FinPara
+    FinPara
+FinSubProceso
 
-            PARA j <- 0 HASTA cols_b - 1 HACER
-                resultado[i][j] <- resultado[i][j] + (valor_a * matriz_b[k][j])
-            FIN PARA
-        FIN PARA
-    FIN PARA
+SubProceso minOp <- FuerzaBrutaCadena(p Por Referencia, i, j, s Por Referencia, mejorOrden Por Referencia)
+    Definir k, mejorK, minOp, opIzq, opDer, opUnion, opTotal Como Entero
+    Definir ordIzq, ordDer Como Texto
 
-    RETORNAR resultado
-FIN FUNCIÓN
+    Si i = j Entonces
+        minOp <- 0
+        s[i, j] <- 0
+        mejorOrden <- "A" + ConvertirATexto(i)
+    SiNo
+        minOp <- -1
+        mejorK <- i
+        mejorOrden <- ""
+        ordIzq <- ""
+        ordDer <- ""
 
+        // Fuerza bruta: prueba recursivamente todos los cortes k sin tabla DP
+        // En base 1, Ai tiene tamaño p[i] x p[i + 1]
+        Para k <- i Hasta j - 1 Hacer
+            opIzq <- FuerzaBrutaCadena(p, i, k, s, ordIzq)
+            opDer <- FuerzaBrutaCadena(p, k + 1, j, s, ordDer)
+            opUnion <- p[i] * p[k + 1] * p[j + 1]
+            opTotal <- opIzq + opDer + opUnion
 
-// ------------------------------------------------------------
-// Función recursiva (fuerza bruta) para hallar el orden óptimo
-// ------------------------------------------------------------
-FUNCIÓN fuerza_bruta_cadena(dimensiones, i, j)
-    SI i = j ENTONCES
-        RETORNAR (0, "A" + convertir_a_texto(i), i)
-    FIN SI
+            Si minOp = -1 Entonces
+                minOp <- opTotal
+                mejorK <- k
+                mejorOrden <- "(" + ordIzq + " x " + ordDer + ")"
+            SiNo
+                Si opTotal < minOp Entonces
+                    minOp <- opTotal
+                    mejorK <- k
+                    mejorOrden <- "(" + ordIzq + " x " + ordDer + ")"
+                FinSi
+            FinSi
+        FinPara
 
-    min_operaciones <- INFINITO
-    mejor_orden <- ""
-    mejor_arbol <- NULO
+        s[i, j] <- mejorK
+    FinSi
+FinSubProceso
 
-    PARA k <- i HASTA j - 1 HACER
-        (operaciones_izq, orden_izq, arbol_izq) <- fuerza_bruta_cadena(dimensiones, i, k)
-        (operaciones_der, orden_der, arbol_der) <- fuerza_bruta_cadena(dimensiones, k + 1, j)
+SubProceso MultiplicarEnOrden(M Por Referencia, p Por Referencia, s Por Referencia, i, j, maxDim, R Por Referencia, filasR Por Referencia, colsR Por Referencia)
+    Definir k, f, c, fIzq, cIzq, fDer, cDer Como Entero
+    Definir izq, der Como Real
+    Dimensionar izq[maxDim, maxDim]
+    Dimensionar der[maxDim, maxDim]
 
-        operaciones_union <- dimensiones[i - 1] * dimensiones[k] * dimensiones[j]
-        operaciones_total <- operaciones_izq + operaciones_der + operaciones_union
+    Si i = j Entonces
+        filasR <- p[i]
+        colsR <- p[i + 1]
+        Para f <- 1 Hasta filasR Hacer
+            Para c <- 1 Hasta colsR Hacer
+                R[f, c] <- M[i, f, c]
+            FinPara
+        FinPara
+    SiNo
+        k <- s[i, j]
+        fIzq <- 0
+        cIzq <- 0
+        fDer <- 0
+        cDer <- 0
+        MultiplicarEnOrden(M, p, s, i, k, maxDim, izq, fIzq, cIzq)
+        MultiplicarEnOrden(M, p, s, k + 1, j, maxDim, der, fDer, cDer)
+        MultiplicarMatrices(izq, fIzq, cIzq, der, cDer, R)
+        filasR <- fIzq
+        colsR <- cDer
+    FinSi
+FinSubProceso
 
-        SI operaciones_total < min_operaciones ENTONCES
-            min_operaciones <- operaciones_total
-            mejor_orden <- "(" + orden_izq + " x " + orden_der + ")"
-            mejor_arbol <- (arbol_izq, arbol_der)
-        FIN SI
-    FIN PARA
+SubProceso ok <- EsNumeroValido(tok)
+    Definir i, inicio, longTok Como Entero
+    Definir ch Como Texto
+    Definir tieneDigito, tienePunto, ok Como Logico
 
-    RETORNAR (min_operaciones, mejor_orden, mejor_arbol)
-FIN FUNCIÓN
+    longTok <- Longitud(tok)
+    Si longTok = 0 Entonces
+        ok <- Falso
+    SiNo
+        inicio <- 1
+        ch <- Subcadena(tok, 1, 1)
+        Si ch = "-" O ch = "+" Entonces
+            inicio <- 2
+        FinSi
 
+        Si inicio > longTok Entonces
+            ok <- Falso
+        SiNo
+            tieneDigito <- Falso
+            tienePunto <- Falso
+            ok <- Verdadero
+            Para i <- inicio Hasta longTok Hacer
+                ch <- Subcadena(tok, i, i)
+                Si ch >= "0" Y ch <= "9" Entonces
+                    tieneDigito <- Verdadero
+                SiNo
+                    Si ch = "." Y NO tienePunto Entonces
+                        tienePunto <- Verdadero
+                    SiNo
+                        ok <- Falso
+                    FinSi
+                FinSi
+            FinPara
+            ok <- ok Y tieneDigito
+        FinSi
+    FinSi
+FinSubProceso
 
-// ------------------------------------------------------------
-// Función recursiva para multiplicar siguiendo el árbol óptimo
-// ------------------------------------------------------------
-FUNCIÓN multiplicar_en_orden(matrices, arbol)
-    SI arbol es un entero ENTONCES
-        RETORNAR matrices[arbol - 1]
-    FIN SI
+SubProceso LeerFila(matriz Por Referencia, idxM, filaActual, columnas)
+    Definir cad, token Como Texto
+    Definir longCad, pos, cont, i Como Entero
+    Definir valido, esNumError Como Logico
+    Definir valores Como Real
+    Dimensionar valores[columnas]
 
-    (arbol_izq, arbol_der) <- arbol
-    izq <- multiplicar_en_orden(matrices, arbol_izq)
-    der <- multiplicar_en_orden(matrices, arbol_der)
+    Repetir
+        Escribir Sin Saltar "    Fila ", filaActual, ": "
+        Leer cad
+        cad <- cad + " "
+        longCad <- Longitud(cad)
+        token <- ""
+        cont <- 0
+        valido <- Verdadero
+        esNumError <- Falso
 
-    RETORNAR multiplicar_matrices(izq, der)
-FIN FUNCIÓN
+        Para pos <- 1 Hasta longCad Hacer
+            Si Subcadena(cad, pos, pos) <> " " Entonces
+                token <- token + Subcadena(cad, pos, pos)
+            SiNo
+                Si Longitud(token) > 0 Entonces
+                    Si EsNumeroValido(token) Entonces
+                        cont <- cont + 1
+                        Si cont <= columnas Entonces
+                            valores[cont] <- ConvertirANumero(token)
+                        SiNo
+                            valido <- Falso
+                        FinSi
+                    SiNo
+                        valido <- Falso
+                        esNumError <- Verdadero
+                    FinSi
+                    token <- ""
+                FinSi
+            FinSi
+        FinPara
 
+        Si cont <> columnas Entonces
+            valido <- Falso
+        FinSi
 
-// ------------------------------------------------------------
-// Función para leer y validar una matriz desde la entrada
-// ------------------------------------------------------------
-FUNCIÓN leer_matriz(nombre)
-    MIENTRAS VERDADERO HACER
-        INTENTAR
-            ESCRIBIR "Filas de ", nombre, ": "
-            LEER filas (entero)
-            ESCRIBIR "Columnas de ", nombre, ": "
-            LEER columnas (entero)
+        Si NO valido Entonces
+            Si esNumError Entonces
+                Escribir "    Valores inválidos, intenta de nuevo."
+            SiNo
+                Escribir "    Deben ser ", columnas, " números."
+            FinSi
+        FinSi
+    Hasta Que valido
 
-            SI filas <= 0 O columnas <= 0 ENTONCES
-                ESCRIBIR "Deben ser positivas."
-                CONTINUAR
-            FIN SI
-            SALIR DEL BUCLE
-        CAPTURAR ErrorDeValor
-            ESCRIBIR "Introduce números enteros."
-        FIN INTENTAR
-    FIN MIENTRAS
+    Para i <- 1 Hasta columnas Hacer
+        matriz[idxM, filaActual, i] <- valores[i]
+    FinPara
+FinSubProceso
 
-    ESCRIBIR "Introduce las ", filas, " filas de ", nombre, " (números separados por espacios):"
-    matriz <- lista vacía
+SubProceso LeerMatriz(matrices Por Referencia, idxM, nombre, maxDim, filas Por Referencia, columnas Por Referencia)
+    Definir numFila Como Entero
 
-    PARA num_fila <- 0 HASTA filas - 1 HACER
-        MIENTRAS VERDADERO HACER
-            INTENTAR
-                ESCRIBIR "Fila ", num_fila + 1, ": "
-                LEER línea y dividirla en una lista de números reales -> fila
+    Repetir
+        Escribir Sin Saltar "  Filas de ", nombre, ": "
+        Leer filas
+        Escribir Sin Saltar "  Columnas de ", nombre, ": "
+        Leer columnas
+        Si filas <= 0 O columnas <= 0 Entonces
+            Escribir "  Deben ser positivas."
+        SiNo
+            Si filas > maxDim O columnas > maxDim Entonces
+                Escribir "  El máximo permitido es ", maxDim, "."
+            FinSi
+        FinSi
+    Hasta Que filas > 0 Y columnas > 0 Y filas <= maxDim Y columnas <= maxDim
 
-                SI longitud(fila) != columnas ENTONCES
-                    ESCRIBIR "Deben ser ", columnas, " números."
-                    CONTINUAR
-                FIN SI
+    Escribir "  Introduce las ", filas, " filas de ", nombre, " (números separados por espacios):"
+    Para numFila <- 1 Hasta filas Hacer
+        LeerFila(matrices, idxM, numFila, columnas)
+    FinPara
+FinSubProceso
 
-                agregar fila a matriz
-                SALIR DEL BUCLE
-            CAPTURAR ErrorDeValor
-                ESCRIBIR "Valores inválidos, intenta de nuevo."
-            FIN INTENTAR
-        FIN MIENTRAS
-    FIN PARA
+// =========================================================
+// PROCESO PRINCIPAL
+// =========================================================
 
-    RETORNAR matriz
-FIN FUNCIÓN
+Proceso MultiplicacionMatricesFuerzaBruta
+    Definir n, i, j, maxDim, minOperaciones, fRes, cRes, fTemp, cTemp Como Entero
+    Definir validas Como Logico
+    Definir mejorOrden Como Texto
+    Definir filasMat, colsMat, p, s Como Entero
+    Definir matrices, resultado Como Real
 
+    maxDim <- 50   // Tamaño máximo por fila/columna
 
-// ------------------------------------------------------------
-// Procedimiento principal
-// ------------------------------------------------------------
-PROCEDIMIENTO principal()
-    ESCRIBIR "=== Multiplicación de matrices mediante fuerza bruta ==="
+    Escribir "=== Multiplicación de matrices mediante fuerza bruta ==="
 
-    MIENTRAS VERDADERO HACER
-        INTENTAR
-            ESCRIBIR "¿Cuántas matrices desea multiplicar? "
-            LEER n (entero)
-            SI n >= 2 ENTONCES
-                SALIR DEL BUCLE
-            FIN SI
-            ESCRIBIR "Deben ser al menos 2."
-        CAPTURAR ErrorDeValor
-            ESCRIBIR "Introduce un entero."
-        FIN INTENTAR
-    FIN MIENTRAS
+    Repetir
+        Escribir Sin Saltar "¿Cuántas matrices desea multiplicar? "
+        Leer n
+        Si n < 2 Entonces
+            Escribir "Deben ser al menos 2."
+        FinSi
+    Hasta Que n >= 2
 
-    matrices <- lista vacía
-    PARA indice <- 1 HASTA n HACER
-        ESCRIBIR "Matriz A", indice, ":"
-        agregar leer_matriz("A" + convertir_a_texto(indice)) a matrices
-    FIN PARA
+    Dimensionar filasMat[n]
+    Dimensionar colsMat[n]
+    Dimensionar matrices[n, maxDim, maxDim]
 
-    PARA indice <- 0 HASTA n - 2 HACER
-        SI longitud(matrices[indice][0]) != longitud(matrices[indice + 1]) ENTONCES
-            ESCRIBIR "Error: A", indice + 1, " tiene ", longitud(matrices[indice][0]),
-                     " columnas pero A", indice + 2, " tiene ", longitud(matrices[indice + 1]), " filas."
-            RETORNAR
-        FIN SI
-    FIN PARA
+    Para i <- 1 Hasta n Hacer
+        Escribir ""
+        Escribir "Matriz A", i, ":"
+        fTemp <- 0
+        cTemp <- 0
+        LeerMatriz(matrices, i, "A" + ConvertirATexto(i), maxDim, fTemp, cTemp)
+        filasMat[i] <- fTemp
+        colsMat[i] <- cTemp
+    FinPara
 
-    dimensiones <- [longitud(matrices[0])]
-    PARA CADA matriz EN matrices HACER
-        agregar longitud(matriz[0]) a dimensiones
-    FIN PARA
+    // Verificar compatibilidad y detenerse en el primer error
+    validas <- Verdadero
+    Para i <- 1 Hasta n - 1 Hacer
+        Si validas Entonces
+            Si colsMat[i] <> filasMat[i + 1] Entonces
+                Escribir ""
+                Escribir "Error: A", i, " tiene ", colsMat[i], " columnas pero A", i + 1, " tiene ", filasMat[i + 1], " filas."
+                validas <- Falso
+            FinSi
+        FinSi
+    FinPara
 
-    (min_operaciones, mejor_orden, mejor_arbol) <- fuerza_bruta_cadena(dimensiones, 1, n)
+    Si validas Entonces
+        Dimensionar p[n + 1]
+        p[1] <- filasMat[1]
+        Para i <- 1 Hasta n Hacer
+            p[i + 1] <- colsMat[i]
+        FinPara
 
-    ESCRIBIR "Mínimo de operaciones: ", entero(min_operaciones)
-    ESCRIBIR "Mejor orden: ", mejor_orden
+        Dimensionar s[n, n]
+        mejorOrden <- ""
+        minOperaciones <- FuerzaBrutaCadena(p, 1, n, s, mejorOrden)
 
-    resultado <- multiplicar_en_orden(matrices, mejor_arbol)
+        Escribir ""
+        Escribir "Mínimo de operaciones: ", minOperaciones
+        Escribir "Mejor orden: ", mejorOrden
 
-    ESCRIBIR "Resultado:"
-    PARA CADA fila EN resultado HACER
-        ESCRIBIR "  ", fila
-    FIN PARA
-FIN PROCEDIMIENTO
+        Dimensionar resultado[maxDim, maxDim]
+        fRes <- 0
+        cRes <- 0
+        MultiplicarEnOrden(matrices, p, s, 1, n, maxDim, resultado, fRes, cRes)
 
-
-// ------------------------------------------------------------
-// Inicio del programa
-// ------------------------------------------------------------
-LLAMAR principal()
-
-FIN ALGORITMO
+        Escribir ""
+        Escribir "Resultado:"
+        Para i <- 1 Hasta fRes Hacer
+            Escribir Sin Saltar "   ["
+            Para j <- 1 Hasta cRes Hacer
+                Escribir Sin Saltar resultado[i, j]
+                Si j < cRes Entonces
+                    Escribir Sin Saltar ", "
+                FinSi
+            FinPara
+            Escribir "]"
+        FinPara
+    FinSi
+FinProceso
