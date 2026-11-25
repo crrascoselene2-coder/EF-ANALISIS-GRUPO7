@@ -1,0 +1,111 @@
+def multiplicar_matrices(matriz_a, matriz_b):
+    filas_a, cols_a = len(matriz_a), len(matriz_a[0])
+    cols_b = len(matriz_b[0])
+    resultado = [[0] * cols_b for _ in range(filas_a)]
+    for i in range(filas_a):
+        for k in range(cols_a):
+            valor_a = matriz_a[i][k]
+            if valor_a == 0:
+                continue
+            for j in range(cols_b):
+                resultado[i][j] += valor_a * matriz_b[k][j]
+    return resultado
+
+
+def fuerza_bruta_cadena(dimensiones, i, j):
+    if i == j:
+        return 0, f"A{i}", i
+
+    min_operaciones = float("inf")
+    mejor_orden = ""
+    mejor_arbol = None
+
+    for k in range(i, j):
+        operaciones_izq, orden_izq, arbol_izq = fuerza_bruta_cadena(dimensiones, i, k)
+        operaciones_der, orden_der, arbol_der = fuerza_bruta_cadena(dimensiones, k + 1, j)
+        operaciones_union = dimensiones[i - 1] * dimensiones[k] * dimensiones[j]
+        operaciones_total = operaciones_izq + operaciones_der + operaciones_union
+
+        if operaciones_total < min_operaciones:
+            min_operaciones = operaciones_total
+            mejor_orden = f"({orden_izq} x {orden_der})"
+            mejor_arbol = (arbol_izq, arbol_der)
+
+    return min_operaciones, mejor_orden, mejor_arbol
+
+
+def multiplicar_en_orden(matrices, arbol):
+    if isinstance(arbol, int):
+        return matrices[arbol - 1]
+    arbol_izq, arbol_der = arbol
+    izq = multiplicar_en_orden(matrices, arbol_izq)
+    der = multiplicar_en_orden(matrices, arbol_der)
+    return multiplicar_matrices(izq, der)
+
+
+def leer_matriz(nombre):
+    while True:
+        try:
+            filas = int(input(f"  Filas de {nombre}: "))
+            columnas = int(input(f"  Columnas de {nombre}: "))
+            if filas <= 0 or columnas <= 0:
+                print("  Deben ser positivas.")
+                continue
+            break
+        except ValueError:
+            print("  Introduce números enteros.")
+
+    print(f"  Introduce las {filas} filas de {nombre} (números separados por espacios):")
+    matriz = []
+    for num_fila in range(filas):
+        while True:
+            try:
+                fila = list(map(float, input(f"    Fila {num_fila + 1}: ").split()))
+                if len(fila) != columnas:
+                    print(f"    Deben ser {columnas} números.")
+                    continue
+                matriz.append(fila)
+                break
+            except ValueError:
+                print("    Valores inválidos, intenta de nuevo.")
+    return matriz
+
+
+def principal():
+    print("=== Multiplicación de matrices mediante fuerza bruta ===")
+    while True:
+        try:
+            n = int(input("¿Cuántas matrices desea multiplicar? "))
+            if n >= 2:
+                break
+            print("Deben ser al menos 2.")
+        except ValueError:
+            print("Introduce un entero.")
+
+    matrices = []
+    for indice in range(1, n + 1):
+        print(f"\nMatriz A{indice}:")
+        matrices.append(leer_matriz(f"A{indice}"))
+
+    for indice in range(n - 1):
+        if len(matrices[indice][0]) != len(matrices[indice + 1]):
+            print(
+                f"\nError: A{indice + 1} tiene {len(matrices[indice][0])} columnas "
+                f"pero A{indice + 2} tiene {len(matrices[indice + 1])} filas."
+            )
+            return
+
+    dimensiones = [len(matrices[0])] + [len(matriz[0]) for matriz in matrices]
+
+    min_operaciones, mejor_orden, mejor_arbol = fuerza_bruta_cadena(dimensiones, 1, n)
+    print("\nMínimo de operaciones:", int(min_operaciones))
+    print("Mejor orden:", mejor_orden)
+
+    resultado = multiplicar_en_orden(matrices, mejor_arbol)
+
+    print("\nResultado:")
+    for fila in resultado:
+        print("  ", fila)
+
+
+principal()
