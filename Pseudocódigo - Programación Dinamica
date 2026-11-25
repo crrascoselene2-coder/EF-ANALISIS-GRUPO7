@@ -1,0 +1,186 @@
+Proceso MultiplicacionCadenaMatrices
+    // ===== Funciones auxiliares =====
+    // Se describen como subprocesos para mayor claridad
+
+    // ---------------------------------------------------------
+    // SubProceso orden_cadena_matrices(dimensiones) -> m, s
+    // Calcula la tabla m (costos mínimos) y la tabla s (puntos de división)
+    // ---------------------------------------------------------
+    SubProceso (m, s) <- OrdenCadenaMatrices(dimensiones)
+        Definir n, longitud, i, j, k, costo Como Entero
+        n <- Longitud(dimensiones) - 1
+        Dimensionar m[n+1, n+1]
+        Dimensionar s[n+1, n+1]
+        Para a <- 0 Hasta n Hacer           // inicializar tablas en 0
+            Para b <- 0 Hasta n Hacer
+                m[a, b] <- 0
+                s[a, b] <- 0
+            FinPara
+        FinPara
+
+        Para longitud <- 2 Hasta n Hacer    // longitud de la subcadena
+            Para i <- 1 Hasta n - longitud + 1 Hacer
+                j <- i + longitud - 1
+                m[i, j] <- Infinito          // valor inicial "infinito"
+                Para k <- i Hasta j - 1 Hacer
+                    costo <- m[i, k] + m[k+1, j] + dimensiones[i-1] * dimensiones[k] * dimensiones[j]
+                    Si costo < m[i, j] Entonces
+                        m[i, j] <- costo
+                        s[i, j] <- k         // guardar punto de división óptimo
+                    FinSi
+                FinPara
+            FinPara
+        FinPara
+    FinSubProceso
+
+    // ---------------------------------------------------------
+    // SubProceso resultado <- MultiplicarMatrices(A, B)
+    // Multiplica dos matrices (fila x columna)
+    // ---------------------------------------------------------
+    SubProceso resultado <- MultiplicarMatrices(A, B)
+        Definir filasA, colsA, colsB, i, k, j Como Entero
+        Definir valorA Como Real
+        filasA <- Longitud(A)
+        colsA <- Longitud(A[1])
+        colsB <- Longitud(B[1])
+        Dimensionar resultado[filasA, colsB]
+
+        Para i <- 1 Hasta filasA Hacer
+            Para j <- 1 Hasta colsB Hacer
+                resultado[i, j] <- 0
+            FinPara
+        FinPara
+
+        Para i <- 1 Hasta filasA Hacer
+            Para k <- 1 Hasta colsA Hacer
+                valorA <- A[i, k]
+                Si valorA = 0 Entonces       // optimización: omitir ceros
+                    Continuar
+                FinSi
+                Para j <- 1 Hasta colsB Hacer
+                    resultado[i, j] <- resultado[i, j] + valorA * B[k, j]
+                FinPara
+            FinPara
+        FinPara
+    FinSubProceso
+
+    // ---------------------------------------------------------
+    // SubProceso resultado <- MultiplicarPorOrden(matrices, s, i, j)
+    // Multiplica recursivamente según el orden óptimo
+    // ---------------------------------------------------------
+    SubProceso resultado <- MultiplicarPorOrden(matrices, s, i, j)
+        Si i = j Entonces
+            resultado <- matrices[i]
+        SiNo
+            k <- s[i, j]
+            izquierda <- MultiplicarPorOrden(matrices, s, i, k)
+            derecha <- MultiplicarPorOrden(matrices, s, k+1, j)
+            resultado <- MultiplicarMatrices(izquierda, derecha)
+        FinSi
+    FinSubProceso
+
+    // ---------------------------------------------------------
+    // SubProceso cadena <- ObtenerMejorOrden(s, i, j)
+    // Devuelve el orden óptimo como texto con paréntesis
+    // ---------------------------------------------------------
+    SubProceso cadena <- ObtenerMejorOrden(s, i, j)
+        Si i = j Entonces
+            cadena <- "A" + i
+        SiNo
+            k <- s[i, j]
+            cadena <- "(" + ObtenerMejorOrden(s, i, k) + " x " + ObtenerMejorOrden(s, k+1, j) + ")"
+        FinSi
+    FinSubProceso
+
+    // ---------------------------------------------------------
+    // SubProceso matriz <- LeerMatriz(nombre)
+    // Lee filas y columnas, valida y captura los valores
+    // ---------------------------------------------------------
+    SubProceso matriz <- LeerMatriz(nombre)
+        Definir filas, columnas, numFila, valido Como Entero
+        Definir fila Como Arreglo
+        Repetir
+            Escribir "  Filas de ", nombre, ": "
+            Leer filas
+            Escribir "  Columnas de ", nombre, ": "
+            Leer columnas
+            Si filas <= 0 O columnas <= 0 Entonces
+                Escribir "  Deben ser positivas."
+                valido <- Falso
+            SiNo
+                valido <- Verdadero
+            FinSi
+        Mientras Que valido = Falso
+
+        Escribir "  Introduce las ", filas, " filas de ", nombre, " (números separados por espacios):"
+        Para numFila <- 1 Hasta filas Hacer
+            Repetir
+                Escribir "    Fila ", numFila, ": "
+                Leer fila                      // se leen los valores como lista
+                Si Longitud(fila) <> columnas Entonces
+                    Escribir "    Deben ser ", columnas, " números."
+                    valido <- Falso
+                SiNo
+                    Agregar fila a matriz
+                    valido <- Verdadero
+                FinSi
+            Mientras Que valido = Falso
+        FinPara
+    FinSubProceso
+
+    // =========================================================
+    // PROCESO PRINCIPAL
+    // =========================================================
+    Definir n, indice, valido Como Entero
+    Definir matrices, dimensiones, m, s, resultado Como Arreglo
+
+    Escribir "=== Multiplicación de matrices mediante programación dinámica ==="
+
+    // Lectura del número de matrices (mínimo 2)
+    Repetir
+        Escribir "¿Cuántas matrices desea multiplicar? "
+        Leer n
+        Si n >= 2 Entonces
+            valido <- Verdadero
+        SiNo
+            Escribir "Deben ser al menos 2."
+            valido <- Falso
+        FinSi
+    Mientras Que valido = Falso
+
+    // Lectura de cada matriz
+    Para indice <- 1 Hasta n Hacer
+        Escribir ""
+        Escribir "Matriz A", indice, ":"
+        matrices[indice] <- LeerMatriz("A" + indice)
+    FinPara
+
+    // Validación de compatibilidad entre matrices consecutivas
+    Para indice <- 1 Hasta n - 1 Hacer
+        Si Longitud(matrices[indice][1]) <> Longitud(matrices[indice+1]) Entonces
+            Escribir "Error: A", indice, " tiene ", Longitud(matrices[indice][1]),
+                     " columnas pero A", indice+1, " tiene ", Longitud(matrices[indice+1]), " filas."
+            Ir a FinProceso                  // terminar el programa
+        FinSi
+    FinPara
+
+    // Construcción del arreglo de dimensiones (indexado desde 0)
+    dimensiones[0] <- Longitud(matrices[1])
+    Para indice <- 1 Hasta n Hacer
+        dimensiones[indice] <- Longitud(matrices[indice][1])
+    FinPara
+
+    // Cálculo de costos mínimos y puntos de división
+    (m, s) <- OrdenCadenaMatrices(dimensiones)
+    Escribir "Mínimo de operaciones: ", Entero(m[1, n])
+    Escribir "Mejor orden: ", ObtenerMejorOrden(s, 1, n)
+
+    // Multiplicación según el orden óptimo
+    resultado <- MultiplicarPorOrden(matrices, s, 1, n)
+
+    Escribir ""
+    Escribir "Resultado:"
+    Para cada fila en resultado Hacer
+        Escribir "   ", fila
+    FinPara
+FinProceso
