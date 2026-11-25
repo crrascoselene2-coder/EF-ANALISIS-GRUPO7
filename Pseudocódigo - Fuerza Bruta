@@ -1,0 +1,180 @@
+ALGORITMO MultiplicacionMatricesFuerzaBruta
+
+// ------------------------------------------------------------
+// Función para multiplicar dos matrices
+// ------------------------------------------------------------
+FUNCIÓN multiplicar_matrices(matriz_a, matriz_b)
+    filas_a <- longitud(matriz_a)
+    cols_a  <- longitud(matriz_a[0])
+    cols_b  <- longitud(matriz_b[0])
+
+    resultado <- matriz de tamaño [filas_a][cols_b] llena de 0
+
+    PARA i <- 0 HASTA filas_a - 1 HACER
+        PARA k <- 0 HASTA cols_a - 1 HACER
+            valor_a <- matriz_a[i][k]
+            SI valor_a = 0 ENTONCES
+                CONTINUAR con la siguiente iteración de k
+            FIN SI
+
+            PARA j <- 0 HASTA cols_b - 1 HACER
+                resultado[i][j] <- resultado[i][j] + (valor_a * matriz_b[k][j])
+            FIN PARA
+        FIN PARA
+    FIN PARA
+
+    RETORNAR resultado
+FIN FUNCIÓN
+
+
+// ------------------------------------------------------------
+// Función recursiva (fuerza bruta) para hallar el orden óptimo
+// ------------------------------------------------------------
+FUNCIÓN fuerza_bruta_cadena(dimensiones, i, j)
+    SI i = j ENTONCES
+        RETORNAR (0, "A" + convertir_a_texto(i), i)
+    FIN SI
+
+    min_operaciones <- INFINITO
+    mejor_orden <- ""
+    mejor_arbol <- NULO
+
+    PARA k <- i HASTA j - 1 HACER
+        (operaciones_izq, orden_izq, arbol_izq) <- fuerza_bruta_cadena(dimensiones, i, k)
+        (operaciones_der, orden_der, arbol_der) <- fuerza_bruta_cadena(dimensiones, k + 1, j)
+
+        operaciones_union <- dimensiones[i - 1] * dimensiones[k] * dimensiones[j]
+        operaciones_total <- operaciones_izq + operaciones_der + operaciones_union
+
+        SI operaciones_total < min_operaciones ENTONCES
+            min_operaciones <- operaciones_total
+            mejor_orden <- "(" + orden_izq + " x " + orden_der + ")"
+            mejor_arbol <- (arbol_izq, arbol_der)
+        FIN SI
+    FIN PARA
+
+    RETORNAR (min_operaciones, mejor_orden, mejor_arbol)
+FIN FUNCIÓN
+
+
+// ------------------------------------------------------------
+// Función recursiva para multiplicar siguiendo el árbol óptimo
+// ------------------------------------------------------------
+FUNCIÓN multiplicar_en_orden(matrices, arbol)
+    SI arbol es un entero ENTONCES
+        RETORNAR matrices[arbol - 1]
+    FIN SI
+
+    (arbol_izq, arbol_der) <- arbol
+    izq <- multiplicar_en_orden(matrices, arbol_izq)
+    der <- multiplicar_en_orden(matrices, arbol_der)
+
+    RETORNAR multiplicar_matrices(izq, der)
+FIN FUNCIÓN
+
+
+// ------------------------------------------------------------
+// Función para leer y validar una matriz desde la entrada
+// ------------------------------------------------------------
+FUNCIÓN leer_matriz(nombre)
+    MIENTRAS VERDADERO HACER
+        INTENTAR
+            ESCRIBIR "Filas de ", nombre, ": "
+            LEER filas (entero)
+            ESCRIBIR "Columnas de ", nombre, ": "
+            LEER columnas (entero)
+
+            SI filas <= 0 O columnas <= 0 ENTONCES
+                ESCRIBIR "Deben ser positivas."
+                CONTINUAR
+            FIN SI
+            SALIR DEL BUCLE
+        CAPTURAR ErrorDeValor
+            ESCRIBIR "Introduce números enteros."
+        FIN INTENTAR
+    FIN MIENTRAS
+
+    ESCRIBIR "Introduce las ", filas, " filas de ", nombre, " (números separados por espacios):"
+    matriz <- lista vacía
+
+    PARA num_fila <- 0 HASTA filas - 1 HACER
+        MIENTRAS VERDADERO HACER
+            INTENTAR
+                ESCRIBIR "Fila ", num_fila + 1, ": "
+                LEER línea y dividirla en una lista de números reales -> fila
+
+                SI longitud(fila) != columnas ENTONCES
+                    ESCRIBIR "Deben ser ", columnas, " números."
+                    CONTINUAR
+                FIN SI
+
+                agregar fila a matriz
+                SALIR DEL BUCLE
+            CAPTURAR ErrorDeValor
+                ESCRIBIR "Valores inválidos, intenta de nuevo."
+            FIN INTENTAR
+        FIN MIENTRAS
+    FIN PARA
+
+    RETORNAR matriz
+FIN FUNCIÓN
+
+
+// ------------------------------------------------------------
+// Procedimiento principal
+// ------------------------------------------------------------
+PROCEDIMIENTO principal()
+    ESCRIBIR "=== Multiplicación de matrices mediante fuerza bruta ==="
+
+    MIENTRAS VERDADERO HACER
+        INTENTAR
+            ESCRIBIR "¿Cuántas matrices desea multiplicar? "
+            LEER n (entero)
+            SI n >= 2 ENTONCES
+                SALIR DEL BUCLE
+            FIN SI
+            ESCRIBIR "Deben ser al menos 2."
+        CAPTURAR ErrorDeValor
+            ESCRIBIR "Introduce un entero."
+        FIN INTENTAR
+    FIN MIENTRAS
+
+    matrices <- lista vacía
+    PARA indice <- 1 HASTA n HACER
+        ESCRIBIR "Matriz A", indice, ":"
+        agregar leer_matriz("A" + convertir_a_texto(indice)) a matrices
+    FIN PARA
+
+    PARA indice <- 0 HASTA n - 2 HACER
+        SI longitud(matrices[indice][0]) != longitud(matrices[indice + 1]) ENTONCES
+            ESCRIBIR "Error: A", indice + 1, " tiene ", longitud(matrices[indice][0]),
+                     " columnas pero A", indice + 2, " tiene ", longitud(matrices[indice + 1]), " filas."
+            RETORNAR
+        FIN SI
+    FIN PARA
+
+    dimensiones <- [longitud(matrices[0])]
+    PARA CADA matriz EN matrices HACER
+        agregar longitud(matriz[0]) a dimensiones
+    FIN PARA
+
+    (min_operaciones, mejor_orden, mejor_arbol) <- fuerza_bruta_cadena(dimensiones, 1, n)
+
+    ESCRIBIR "Mínimo de operaciones: ", entero(min_operaciones)
+    ESCRIBIR "Mejor orden: ", mejor_orden
+
+    resultado <- multiplicar_en_orden(matrices, mejor_arbol)
+
+    ESCRIBIR "Resultado:"
+    PARA CADA fila EN resultado HACER
+        ESCRIBIR "  ", fila
+    FIN PARA
+FIN PROCEDIMIENTO
+
+
+// ------------------------------------------------------------
+// Inicio del programa
+// ------------------------------------------------------------
+LLAMAR principal()
+
+FIN ALGORITMO
