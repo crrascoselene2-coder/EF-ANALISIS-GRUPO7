@@ -1,4 +1,13 @@
-def orden_cadena_matrices(dimensiones):
+"""Multiplicación en Cadena de Matrices — Versión Programación Dinámica.
+
+Curso: Análisis de Algoritmos y Estrategias de Programación (2026-2)
+"""
+
+import time
+
+
+def orden_cadena_matrices(dimensiones, contador=None):
+    """Construye las tablas DP m (costo mínimo) y s (punto de corte óptimo)."""
     n = len(dimensiones) - 1
     m = [[0] * (n + 1) for _ in range(n + 1)]
     s = [[0] * (n + 1) for _ in range(n + 1)]
@@ -6,18 +15,25 @@ def orden_cadena_matrices(dimensiones):
     for longitud in range(2, n + 1):
         for i in range(1, n - longitud + 2):
             j = i + longitud - 1
-            m[i][j] = float('inf')
+            m[i][j] = float("inf")
             for k in range(i, j):
-                costo = (m[i][k]
-                         + m[k + 1][j]
-                         + dimensiones[i - 1] * dimensiones[k] * dimensiones[j])
+                if contador is not None:
+                    contador["iteraciones_k"] += 1
+                costo = (
+                    m[i][k]
+                    + m[k + 1][j]
+                    + dimensiones[i - 1] * dimensiones[k] * dimensiones[j]
+                )
                 if costo < m[i][j]:
                     m[i][j] = costo
                     s[i][j] = k
+                    if contador is not None:
+                        contador["actualizaciones"] += 1
     return m, s
 
 
 def multiplicar_matrices(matriz_a, matriz_b):
+    """Multiplica dos matrices omitiendo productos por cero en matriz_a."""
     filas_a, cols_a = len(matriz_a), len(matriz_a[0])
     cols_b = len(matriz_b[0])
     resultado = [[0] * cols_b for _ in range(filas_a)]
@@ -32,6 +48,7 @@ def multiplicar_matrices(matriz_a, matriz_b):
 
 
 def multiplicar_por_orden(matrices, s, i, j):
+    """Multiplica las matrices reales siguiendo la tabla de cortes s."""
     if i == j:
         return matrices[i - 1]
     k = s[i][j]
@@ -41,6 +58,7 @@ def multiplicar_por_orden(matrices, s, i, j):
 
 
 def obtener_mejor_orden(s, i, j):
+    """Reconstruye la expresión parentizada óptima desde la tabla s."""
     if i == j:
         return f"A{i}"
     k = s[i][j]
@@ -48,6 +66,7 @@ def obtener_mejor_orden(s, i, j):
 
 
 def leer_matriz(nombre):
+    """Solicita dimensiones y filas de una matriz validando la entrada."""
     while True:
         try:
             filas = int(input(f"  Filas de {nombre}: "))
@@ -76,6 +95,7 @@ def leer_matriz(nombre):
 
 
 def principal():
+    """Punto de entrada interactivo para multiplicar una cadena de matrices."""
     print("=== Multiplicación de matrices mediante programación dinámica ===")
     while True:
         try:
@@ -93,15 +113,23 @@ def principal():
 
     for indice in range(n - 1):
         if len(matrices[indice][0]) != len(matrices[indice + 1]):
-            print(f"\nError: A{indice + 1} tiene {len(matrices[indice][0])} columnas "
-                  f"pero A{indice + 2} tiene {len(matrices[indice + 1])} filas.")
+            print(
+                f"\nError: A{indice + 1} tiene {len(matrices[indice][0])} columnas "
+                f"pero A{indice + 2} tiene {len(matrices[indice + 1])} filas."
+            )
             return
 
     dimensiones = [len(matrices[0])] + [len(matriz[0]) for matriz in matrices]
+    contador = {"iteraciones_k": 0, "actualizaciones": 0}
 
-    m, s = orden_cadena_matrices(dimensiones)
+    inicio = time.perf_counter()
+    m, s = orden_cadena_matrices(dimensiones, contador)
+    tiempo_ms = (time.perf_counter() - inicio) * 1000
+
     print("\nMínimo de operaciones:", int(m[1][n]))
     print("Mejor orden:", obtener_mejor_orden(s, 1, n))
+    print(f"Iteraciones de corte k (PD): {contador['iteraciones_k']:,}")
+    print(f"Tiempo de búsqueda: {tiempo_ms:.4f} ms")
 
     resultado = multiplicar_por_orden(matrices, s, 1, n)
 
@@ -110,4 +138,5 @@ def principal():
         print("  ", fila)
 
 
-principal()
+if __name__ == "__main__":
+    principal()
