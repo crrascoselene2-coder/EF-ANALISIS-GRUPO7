@@ -1,0 +1,142 @@
+"""Comparación de Fuerza Bruta vs. Programación Dinámica en Multiplicación de Matrices.
+
+Ejecuta escenarios medianos y grandes midiendo:
+- Número exacto de operaciones algorítmicas (llamadas recursivas / evaluaciones de corte k)
+- Tiempo de ejecución real en milisegundos
+- Mínimo de multiplicaciones escalares hallado (verificación de exactitud)
+- Comparación adicional contra el orden ingenuo de izquierda a derecha
+"""
+
+import json
+import os
+import random
+import time
+
+from fuerza_bruta_matrices import fuerza_bruta_cadena
+from programacion_dinamica_matrices import (
+    obtener_mejor_orden,
+    orden_cadena_matrices,
+)
+
+
+def costo_orden_secuencial(dimensiones):
+    """Calcula el costo de multiplicar estrictamente de izquierda a derecha."""
+    n = len(dimensiones) - 1
+    total = 0
+    for i in range(1, n):
+        total += dimensiones[0] * dimensiones[i] * dimensiones[i + 1]
+    return total
+
+
+def generar_dimensiones(n, seed=42, min_dim=10, max_dim=120):
+    """Genera n+1 dimensiones deterministas para una cadena de n matrices."""
+    rng = random.Random(seed)
+    return [rng.randint(min_dim, max_dim) for _ in range(n + 1)]
+
+
+def ejecutar_escenario(nombre, dimensiones, repetir_pd=100):
+    """Ejecuta ambos algoritmos sobre una misma cadena de dimensiones."""
+    n = len(dimensiones) - 1
+
+    # --- Fuerza Bruta ---
+    cont_fb = {"llamadas": 0, "iteraciones_k": 0}
+    t0 = time.perf_counter()
+    min_fb, orden_fb, _ = fuerza_bruta_cadena(dimensiones, 1, n, cont_fb)
+    t_fb_ms = (time.perf_counter() - t0) * 1000.0
+
+    # --- Programación Dinámica (promedio de varias repeticiones para precisión sub-ms) ---
+    t1 = time.perf_counter()
+    m = s = None
+    for _ in range(repetir_pd):
+        cont_pd = {"iteraciones_k": 0, "actualizaciones": 0}
+        m, s = orden_cadena_matrices(dimensiones, cont_pd)
+    t_pd_ms = ((time.perf_counter() - t1) * 1000.0) / repetir_pd
+    min_pd = int(m[1][n])
+    orden_pd = obtener_mejor_orden(s, 1, n)
+
+    assert min_fb == min_pd, f"Discrepancia: FB={min_fb} vs PD={min_pd}"
+
+    costo_ingenuo = costo_orden_secuencial(dimensiones)
+    ahorro_escalar = (1.0 - min_pd / costo_ingenuo) * 100.0
+    speedup = t_fb_ms / t_pd_ms if t_pd_ms > 0 else float("inf")
+
+    return {
+        "nombre": nombre,
+        "n": n,
+        "dimensiones": dimensiones,
+        "min_escalares": min_pd,
+        "costo_secuencial": costo_ingenuo,
+        "ahorro_escalar_pct": round(ahorro_escalar, 2),
+        "fb_llamadas": cont_fb["llamadas"],
+        "fb_iteraciones_k": cont_fb["iteraciones_k"],
+        "fb_tiempo_ms": round(t_fb_ms, 4),
+        "pd_iteraciones_k": cont_pd["iteraciones_k"],
+        "pd_celdas_tabla": n * (n + 1) // 2,
+        "pd_tiempo_ms": round(t_pd_ms, 4),
+        "speedup": round(speedup, 2),
+        "orden_optimo": orden_pd,
+    }
+
+
+def main():
+    escenarios_config = [
+        ("Escenario 1: Cadena Mediana (n = 10)", generar_dimensiones(10, seed=101, min_dim=10, max_dim=150)),
+        ("Escenario 2: Cadena Grande (n = 14)", generar_dimensiones(14, seed=202, min_dim=15, max_dim=200)),
+        ("Escenario 3: Cadena Muy Grande (n = 16)", generar_dimensiones(16, seed=300, min_dim=20, max_dim=250)),
+    ]
+
+    resultados = []
+    print("=== COMPARACION DE ESCENARIOS: FUERZA BRUTA VS PROGRAMACION DINAMICA ===\n")
+    for nombre, dims in escenarios_config:
+        res = ejecutar_escenario(nombre, dims)
+        resultados.append(res)
+        print(f"{res['nombre']}")
+        print(f"  Dimensiones: {res['dimensiones']}")
+        print(f"  Costo optimo (escalares): {res['min_escalares']:,}  (vs secuencial: {res['costo_secuencial']:,}, ahorro {res['ahorro_escalar_pct']}%)")
+        print(f"  Fuerza Bruta -> Llamadas: {res['fb_llamadas']:,} | Cortes k: {res['fb_iteraciones_k']:,} | Tiempo: {res['fb_tiempo_ms']:.4f} ms")
+        print(f"  Prog. Dinam. -> Cortes k: {res['pd_iteraciones_k']:,} | Tiempo: {res['pd_tiempo_ms']:.4f} ms | Speedup: {res['speedup']:,.1f}x")
+        print(f"  Orden optimo: {res['orden_optimo']}\n")
+
+    # Curva de crecimiento de n=4 a n=16 para graficos
+    curva = []
+    for n in range(4, 17):
+        dims = generar_dimensiones(n, seed=400 + n, min_dim=10, max_dim=150)
+        res = ejecutar_escenario(f"n={n}", dims, repetir_pd=200)
+        curva.append({
+            "n": n,
+            "fb_llamadas": res["fb_llamadas"],
+            "fb_iteraciones_k": res["fb_iteraciones_k"],
+            "fb_tiempo_ms": res["fb_tiempo_ms"],
+            "pd_iteraciones_k": res["pd_iteraciones_k"],
+            "pd_tiempo_ms": res["pd_tiempo_ms"],
+            "speedup": res["speedup"],
+        })
+
+    # Caso extremo solo PD (n = 50)
+    dims_50 = generar_dimensiones(50, seed=505, min_dim=10, max_dim=200)
+    t0 = time.perf_counter()
+    cont_50 = {"iteraciones_k": 0, "actualizaciones": 0}
+    m50, _ = orden_cadena_matrices(dims_50, cont_50)
+    t50_ms = (time.perf_counter() - t0) * 1000.0
+    extremo_50 = {
+        "n": 50,
+        "min_escalares": int(m50[1][50]),
+        "pd_iteraciones_k": cont_50["iteraciones_k"],
+        "pd_tiempo_ms": round(t50_ms, 4),
+        "fb_llamadas_teoricas": 3 ** 49,
+    }
+    print(f"Caso extremo (n = 50): PD = {extremo_50['pd_iteraciones_k']:,} ops en {extremo_50['pd_tiempo_ms']:.4f} ms | FB teorico = 3^49 = {extremo_50['fb_llamadas_teoricas']:.3e} llamadas")
+
+    ruta_salida = os.path.join(os.path.dirname(__file__), "resultados_benchmark.json")
+    with open(ruta_salida, "w", encoding="utf-8") as f:
+        json.dump(
+            {"escenarios": resultados, "curva": curva, "extremo_50": extremo_50},
+            f,
+            indent=2,
+            ensure_ascii=False,
+        )
+    print(f"\nResultados guardados en: {ruta_salida}")
+
+
+if __name__ == "__main__":
+    main()
