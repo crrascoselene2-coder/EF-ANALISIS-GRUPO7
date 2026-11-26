@@ -1,4 +1,13 @@
+"""Multiplicación en Cadena de Matrices — Versión Fuerza Bruta.
+
+Curso: Análisis de Algoritmos y Estrategias de Programación (2026-2)
+"""
+
+import time
+
+
 def multiplicar_matrices(matriz_a, matriz_b):
+    """Multiplica dos matrices omitiendo productos por cero en matriz_a."""
     filas_a, cols_a = len(matriz_a), len(matriz_a[0])
     cols_b = len(matriz_b[0])
     resultado = [[0] * cols_b for _ in range(filas_a)]
@@ -12,7 +21,11 @@ def multiplicar_matrices(matriz_a, matriz_b):
     return resultado
 
 
-def fuerza_bruta_cadena(dimensiones, i, j):
+def fuerza_bruta_cadena(dimensiones, i, j, contador=None):
+    """Encuentra el mínimo costo de multiplicación explorando todas las divisiones."""
+    if contador is not None:
+        contador["llamadas"] += 1
+
     if i == j:
         return 0, f"A{i}", i
 
@@ -21,8 +34,15 @@ def fuerza_bruta_cadena(dimensiones, i, j):
     mejor_arbol = None
 
     for k in range(i, j):
-        operaciones_izq, orden_izq, arbol_izq = fuerza_bruta_cadena(dimensiones, i, k)
-        operaciones_der, orden_der, arbol_der = fuerza_bruta_cadena(dimensiones, k + 1, j)
+        if contador is not None:
+            contador["iteraciones_k"] += 1
+
+        operaciones_izq, orden_izq, arbol_izq = fuerza_bruta_cadena(
+            dimensiones, i, k, contador
+        )
+        operaciones_der, orden_der, arbol_der = fuerza_bruta_cadena(
+            dimensiones, k + 1, j, contador
+        )
         operaciones_union = dimensiones[i - 1] * dimensiones[k] * dimensiones[j]
         operaciones_total = operaciones_izq + operaciones_der + operaciones_union
 
@@ -35,6 +55,7 @@ def fuerza_bruta_cadena(dimensiones, i, j):
 
 
 def multiplicar_en_orden(matrices, arbol):
+    """Multiplica las matrices reales siguiendo el árbol de parentización óptimo."""
     if isinstance(arbol, int):
         return matrices[arbol - 1]
     arbol_izq, arbol_der = arbol
@@ -44,6 +65,7 @@ def multiplicar_en_orden(matrices, arbol):
 
 
 def leer_matriz(nombre):
+    """Solicita dimensiones y filas de una matriz validando la entrada."""
     while True:
         try:
             filas = int(input(f"  Filas de {nombre}: "))
@@ -72,6 +94,7 @@ def leer_matriz(nombre):
 
 
 def principal():
+    """Punto de entrada interactivo para multiplicar una cadena de matrices."""
     print("=== Multiplicación de matrices mediante fuerza bruta ===")
     while True:
         try:
@@ -96,10 +119,19 @@ def principal():
             return
 
     dimensiones = [len(matrices[0])] + [len(matriz[0]) for matriz in matrices]
+    contador = {"llamadas": 0, "iteraciones_k": 0}
 
-    min_operaciones, mejor_orden, mejor_arbol = fuerza_bruta_cadena(dimensiones, 1, n)
+    inicio = time.perf_counter()
+    min_operaciones, mejor_orden, mejor_arbol = fuerza_bruta_cadena(
+        dimensiones, 1, n, contador
+    )
+    tiempo_ms = (time.perf_counter() - inicio) * 1000
+
     print("\nMínimo de operaciones:", int(min_operaciones))
     print("Mejor orden:", mejor_orden)
+    print(f"Llamadas recursivas: {contador['llamadas']:,}")
+    print(f"Evaluaciones de corte k: {contador['iteraciones_k']:,}")
+    print(f"Tiempo de búsqueda: {tiempo_ms:.4f} ms")
 
     resultado = multiplicar_en_orden(matrices, mejor_arbol)
 
@@ -108,4 +140,5 @@ def principal():
         print("  ", fila)
 
 
-principal()
+if __name__ == "__main__":
+    principal()
